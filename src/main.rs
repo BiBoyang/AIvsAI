@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use colored::*;
 use reqwest::Client;
+use rustyline::DefaultEditor;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::io::{self, Write};
@@ -47,18 +48,52 @@ struct ConversationTurn {
     user_question: String,
     moonshot_answer: String,
     deepseek_review: String,
-    timestamp: String,
+    _timestamp: String,
+    round: usize, // 第几轮对话
 }
 
 impl ConversationTurn {
-    fn new(user_question: String, moonshot_answer: String, deepseek_review: String) -> Self {
+    fn new(round: usize, user_question: String, moonshot_answer: String, deepseek_review: String) -> Self {
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         Self {
+            round,
             user_question,
             moonshot_answer,
             deepseek_review,
-            timestamp,
+            _timestamp: timestamp,
         }
+    }
+}
+
+// Structure to hold the entire conversation session
+struct ConversationSession {
+    turns: Vec<ConversationTurn>,
+    start_time: String,
+}
+
+impl ConversationSession {
+    fn new() -> Self {
+        let start_time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        Self {
+            turns: Vec::new(),
+            start_time,
+        }
+    }
+
+    fn add_turn(&mut self, turn: ConversationTurn) {
+        self.turns.push(turn);
+    }
+
+    fn is_empty(&self) -> bool {
+        self.turns.is_empty()
+    }
+
+    fn len(&self) -> usize {
+        self.turns.len()
+    }
+
+    fn first_question(&self) -> Option<&str> {
+        self.turns.first().map(|t| t.user_question.as_str())
     }
 }
 
@@ -77,7 +112,7 @@ impl AiConfig {
             }
         }
 
-        // 2. Prompt user
+        // 2. Prompt user using standard io (not rustyline, as this is one-time setup)
         print!("Enter API Key for {}: ", provider_name);
         io::stdout().flush()?;
         let mut input = String::new();
@@ -158,8 +193,8 @@ async fn call_ai_api(client: &Client, config: &AiConfig, messages: Vec<ChatMessa
         .ok_or_else(|| anyhow::anyhow!("No choices returned from {}", config.name))
 }
 
-// Generate filename from timestamp and user question
-fn generate_filename(_timestamp: &str, question: &str) -> String {
+// Generate filename from timestamp and first question
+fn generate_filename(_start_time: &str, question: &str) -> String {
     // Extract first 20 chars of question, remove punctuation, replace spaces with underscores
     let summary: String = question
         .chars()
@@ -179,15 +214,43 @@ fn generate_filename(_timestamp: &str, question: &str) -> String {
     format!("{}_{}.md", filename_timestamp, summary)
 }
 
-// Save conversation to markdown file
-fn save_conversation(
-    turn: &ConversationTurn,
+// Format content with proper line prefixing
+fn format_content_with_prefix(content: &str, prefix: &str) -> String {
+    content.lines().map(|line| format!("{}{}", prefix, line)).collect::<Vec<_>>().join("\n")
+}
+
+// Find project directory by looking for Cargo.toml in current dir or parents
+fn find_project_dir() -> Result<PathBuf> {
+    let mut current_dir = env::current_dir()
+        .context("Failed to get current directory")?;
+    
+    loop {
+        // Check if Cargo.toml exists in current directory
+        let cargo_toml = current_dir.join("Cargo.toml");
+        if cargo_toml.exists() {
+            return Ok(current_dir);
+        }
+        
+        // Try parent directory
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent.to_path_buf(),
+            None => break,
+        }
+    }
+    
+    // If no Cargo.toml found, fall back to current directory
+    env::current_dir().context("Failed to get current directory")
+}
+
+// Save entire conversation session to markdown file
+fn save_conversation_session(
+    session: &ConversationSession,
     moonshot_model: &str,
     deepseek_model: &str,
 ) -> Result<PathBuf> {
-    // Get project root directory (where Cargo.toml is located)
-    let project_root = env::current_dir()?;
-    let conversations_dir = project_root.join("conversations");
+    // Find project directory and create conversations subdirectory
+    let project_dir = find_project_dir()?;
+    let conversations_dir = project_dir.join("conversations");
     
     // Create conversations directory if it doesn't exist
     if !conversations_dir.exists() {
@@ -195,18 +258,26 @@ fn save_conversation(
             .context("Failed to create conversations directory")?;
     }
     
-    // Generate filename
-    let filename = generate_filename(&turn.timestamp, &turn.user_question);
+    // Generate filename using first question
+    let first_question = session.first_question().unwrap_or("conversation");
+    let filename = generate_filename(&session.start_time, first_question);
     let filepath = conversations_dir.join(&filename);
     
     // Build markdown content
-    let content = format!(r#"---
-created_at: {}
+    let mut content = format!(r#"---
+session_start: {}
+total_rounds: {}
 moonshot_model: {}
 deepseek_model: {}
 ---
 
 # AIvsAI 对话记录
+
+"#, session.start_time, session.len(), moonshot_model, deepseek_model);
+    
+    // Add each turn
+    for turn in &session.turns {
+        content.push_str(&format!(r#"## 第 {} 轮
 
 > 💬 **用户**：{}
 
@@ -221,16 +292,18 @@ deepseek_model: {}
 > 🔍 **DeepSeek** ({})
 > 
 {}
+
+---
+
 "#,
-        turn.timestamp,
-        moonshot_model,
-        deepseek_model,
-        turn.user_question,
-        moonshot_model,
-        turn.moonshot_answer.lines().map(|line| format!("> {}", line)).collect::<Vec<_>>().join("\n> "),
-        deepseek_model,
-        turn.deepseek_review.lines().map(|line| format!("> {}", line)).collect::<Vec<_>>().join("\n> "),
-    );
+            turn.round,
+            turn.user_question,
+            moonshot_model,
+            format_content_with_prefix(&turn.moonshot_answer, "> "),
+            deepseek_model,
+            format_content_with_prefix(&turn.deepseek_review, "> "),
+        ));
+    }
     
     // Write to file
     std::fs::write(&filepath, content)
@@ -273,16 +346,37 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Store the last conversation turn for saving
-    let mut last_turn: Option<ConversationTurn> = None;
+    // Create rustyline editor for better input handling (supports Chinese characters properly)
+    let mut rl = DefaultEditor::new()?;
+    
+    // Store the entire conversation session
+    let mut session = ConversationSession::new();
+    let mut round_counter: usize = 0;
 
     loop {
-        print!("{}", "\nUser > ".green().bold());
-        io::stdout().flush()?;
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim();
+        // Use rustyline for reading input with proper Unicode support
+        let readline = rl.readline("\nUser > ");
+        
+        let input = match readline {
+            Ok(line) => {
+                // Add to history (optional, allows up-arrow to recall previous inputs)
+                let _ = rl.add_history_entry(line.as_str());
+                line.trim().to_string()
+            }
+            Err(rustyline::error::ReadlineError::Interrupted) => {
+                // Handle Ctrl+C
+                println!("{}", "\nUse 'exit' or 'quit' to exit.".dimmed());
+                continue;
+            }
+            Err(rustyline::error::ReadlineError::Eof) => {
+                // Handle Ctrl+D
+                break;
+            }
+            Err(err) => {
+                eprintln!("{}", format!("Error reading input: {}", err).red());
+                continue;
+            }
+        };
 
         if input.eq_ignore_ascii_case("exit") || input.eq_ignore_ascii_case("quit") {
             break;
@@ -294,23 +388,24 @@ async fn main() -> Result<()> {
 
         // Handle /save command
         if input.eq_ignore_ascii_case("/save") {
-            match &last_turn {
-                Some(turn) => {
-                    match save_conversation(turn, &moonshot_config.model, &deepseek_config.model) {
-                        Ok(filepath) => {
-                            println!("{}", format!("✓ Conversation saved to: {}", filepath.display()).green());
-                        }
-                        Err(e) => {
-                            eprintln!("{}", format!("✗ Failed to save conversation: {}", e).red());
-                        }
+            if session.is_empty() {
+                println!("{}", "⚠ No conversation to save yet. Ask a question first!".yellow());
+            } else {
+                match save_conversation_session(&session, &moonshot_config.model, &deepseek_config.model) {
+                    Ok(filepath) => {
+                        println!("{}", format!("✓ Conversation saved to: {}", filepath.display()).green());
+                        println!("{}", format!("  Total rounds saved: {}", session.len()).dimmed());
                     }
-                }
-                None => {
-                    println!("{}", "⚠ No conversation to save yet. Ask a question first!".yellow());
+                    Err(e) => {
+                        eprintln!("{}", format!("✗ Failed to save conversation: {}", e).red());
+                    }
                 }
             }
             continue;
         }
+
+        // Increment round counter
+        round_counter += 1;
 
         // --- Step 1: Moonshot Answers ---
         let moonshot_messages = vec![
@@ -364,10 +459,11 @@ async fn main() -> Result<()> {
         println!("{}", deepseek_review);
         
         println!("\n{}", "------------------------------------------".dimmed());
-        println!("{}", "Type /save to save this conversation".dimmed());
+        println!("{}", format!("Round {} completed. Type /save to save this conversation", round_counter).dimmed());
 
-        // Store the conversation turn for potential saving
-        last_turn = Some(ConversationTurn::new(
+        // Store the conversation turn
+        session.add_turn(ConversationTurn::new(
+            round_counter,
             input.to_string(),
             moonshot_answer,
             deepseek_review,
