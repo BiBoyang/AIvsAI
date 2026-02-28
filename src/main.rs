@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
 use colored::*;
-use dotenvy::dotenv;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 // Define structures for OpenAI-compatible API requests/responses
 #[derive(Serialize)]
@@ -40,6 +40,26 @@ struct AiConfig {
     base_url: String,
     model: String,
     name: String,
+}
+
+// Structure to hold a single conversation turn
+struct ConversationTurn {
+    user_question: String,
+    moonshot_answer: String,
+    deepseek_review: String,
+    timestamp: String,
+}
+
+impl ConversationTurn {
+    fn new(user_question: String, moonshot_answer: String, deepseek_review: String) -> Self {
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        Self {
+            user_question,
+            moonshot_answer,
+            deepseek_review,
+            timestamp,
+        }
+    }
 }
 
 impl AiConfig {
@@ -138,6 +158,87 @@ async fn call_ai_api(client: &Client, config: &AiConfig, messages: Vec<ChatMessa
         .ok_or_else(|| anyhow::anyhow!("No choices returned from {}", config.name))
 }
 
+// Generate filename from timestamp and user question
+fn generate_filename(_timestamp: &str, question: &str) -> String {
+    // Extract first 20 chars of question, remove punctuation, replace spaces with underscores
+    let summary: String = question
+        .chars()
+        .take(20)
+        .map(|c| {
+            if c.is_ascii_punctuation() || c.is_ascii_whitespace() {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
+    
+    // Format timestamp for filename: YYYY-MM-DD_HH-MM-SS
+    let filename_timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    
+    format!("{}_{}.md", filename_timestamp, summary)
+}
+
+// Save conversation to markdown file
+fn save_conversation(
+    turn: &ConversationTurn,
+    moonshot_model: &str,
+    deepseek_model: &str,
+) -> Result<PathBuf> {
+    // Get project root directory (where Cargo.toml is located)
+    let project_root = env::current_dir()?;
+    let conversations_dir = project_root.join("conversations");
+    
+    // Create conversations directory if it doesn't exist
+    if !conversations_dir.exists() {
+        std::fs::create_dir_all(&conversations_dir)
+            .context("Failed to create conversations directory")?;
+    }
+    
+    // Generate filename
+    let filename = generate_filename(&turn.timestamp, &turn.user_question);
+    let filepath = conversations_dir.join(&filename);
+    
+    // Build markdown content
+    let content = format!(r#"---
+created_at: {}
+moonshot_model: {}
+deepseek_model: {}
+---
+
+# AIvsAI 对话记录
+
+> 💬 **用户**：{}
+
+---
+
+> 🤖 **Moonshot** ({})
+> 
+{}
+
+---
+
+> 🔍 **DeepSeek** ({})
+> 
+{}
+"#,
+        turn.timestamp,
+        moonshot_model,
+        deepseek_model,
+        turn.user_question,
+        moonshot_model,
+        turn.moonshot_answer.lines().map(|line| format!("> {}", line)).collect::<Vec<_>>().join("\n> "),
+        deepseek_model,
+        turn.deepseek_review.lines().map(|line| format!("> {}", line)).collect::<Vec<_>>().join("\n> "),
+    );
+    
+    // Write to file
+    std::fs::write(&filepath, content)
+        .context("Failed to write conversation file")?;
+    
+    Ok(filepath)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Load config from global file
@@ -153,6 +254,7 @@ async fn main() -> Result<()> {
     println!("{}", "==========================================".cyan().bold());
     println!("{}", "   AI Pair: Moonshot (Answer) + DeepSeek (Review)   ".cyan().bold());
     println!("{}", "==========================================".cyan().bold());
+    println!("{}", "Commands: /save = save conversation, exit/quit = exit".dimmed());
 
     // Check configuration early
     let moonshot_config = match AiConfig::moonshot() {
@@ -171,6 +273,9 @@ async fn main() -> Result<()> {
         }
     };
 
+    // Store the last conversation turn for saving
+    let mut last_turn: Option<ConversationTurn> = None;
+
     loop {
         print!("{}", "\nUser > ".green().bold());
         io::stdout().flush()?;
@@ -184,6 +289,26 @@ async fn main() -> Result<()> {
         }
 
         if input.is_empty() {
+            continue;
+        }
+
+        // Handle /save command
+        if input.eq_ignore_ascii_case("/save") {
+            match &last_turn {
+                Some(turn) => {
+                    match save_conversation(turn, &moonshot_config.model, &deepseek_config.model) {
+                        Ok(filepath) => {
+                            println!("{}", format!("✓ Conversation saved to: {}", filepath.display()).green());
+                        }
+                        Err(e) => {
+                            eprintln!("{}", format!("✗ Failed to save conversation: {}", e).red());
+                        }
+                    }
+                }
+                None => {
+                    println!("{}", "⚠ No conversation to save yet. Ask a question first!".yellow());
+                }
+            }
             continue;
         }
 
@@ -239,6 +364,14 @@ async fn main() -> Result<()> {
         println!("{}", deepseek_review);
         
         println!("\n{}", "------------------------------------------".dimmed());
+        println!("{}", "Type /save to save this conversation".dimmed());
+
+        // Store the conversation turn for potential saving
+        last_turn = Some(ConversationTurn::new(
+            input.to_string(),
+            moonshot_answer,
+            deepseek_review,
+        ));
     }
 
     Ok(())

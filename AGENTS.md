@@ -119,7 +119,43 @@ src/
 
 > 记录计划中的功能更新
 
-- [ ] 待添加...
+- [x] **对话历史保存功能**
+  - 触发方式：用户输入 `/save` 命令时保存
+  - 保存位置：`conversations/` 子目录（自动创建）
+  - 文件命名格式：`YYYY-MM-DD_HH-MM-SS_用户问题摘要.md`
+    - 时间使用本地时间
+    - 摘要取用户问题的前 20 个字符（去除标点，空格替换为下划线）
+  - 保存内容：
+    1. 用户问题
+    2. Moonshot 的回答
+    3. DeepSeek 的审查
+    4. 元信息（时间戳、使用的模型等）
+  - 文件格式：Markdown（对话流版 + YAML Front Matter 元信息）
+    ```markdown
+    ---
+    created_at: 2025-03-01 14:30:25
+    moonshot_model: moonshot-v1-8k
+    deepseek_model: deepseek-chat
+    ---
+
+    # AIvsAI 对话记录
+
+    > 💬 **用户**：用户问题内容
+
+    ---
+
+    > 🤖 **Moonshot** (moonshot-v1-8k)
+    > 
+    > Moonshot 的回答内容
+
+    ---
+
+    > 🔍 **DeepSeek** (deepseek-chat)
+    > 
+    > DeepSeek 的审查内容
+    ```
+  - 隐私提醒：对话历史可能包含敏感信息，注意保护
+
 
 ## 注意事项
 
