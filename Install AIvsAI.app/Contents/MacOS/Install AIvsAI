@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# 获取 App 所在目录（项目目录）
+# Get the directory where the App is located (project directory)
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_DIR="$APP_DIR"
 
-# 打开终端运行安装脚本
+# Open Terminal and run the install script
 osascript <<EOF
 tell application "Terminal"
     activate
     do script "cd \"$PROJECT_DIR\" && ./setup"
-    set custom title of front window to "AIvsAI 安装"
+    set custom title of front window to "AIvsAI Setup"
 end tell
 EOF

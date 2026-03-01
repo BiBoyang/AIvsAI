@@ -1,74 +1,104 @@
 # AIvsAI
 
-一个基于 Rust 的双 AI 协作终端工具。
+A dual-AI collaborative terminal tool built with Rust.
 
-## 简介
+## Introduction
 
-**AIvsAI** 是一个有趣的命令行工具，它通过两个 AI 模型（Moonshot AI 和 DeepSeek AI）的协作来为你提供更高质量的答案。
+**AIvsAI** is an interesting command-line tool that leverages the collaboration of two AI models (Moonshot AI and DeepSeek AI) to provide you with higher quality answers.
 
-工作流程如下：
-1.  **用户提问**：你在终端输入问题。
-2.  **Moonshot 回答**：Moonshot AI (Kimi) 首先尝试回答你的问题。
-3.  **DeepSeek 审查**：DeepSeek AI 作为“技术审查员”，读取你的问题和 Moonshot 的回答，对其进行严格的审查、纠错和补充。
+Workflow:
+1.  **User Question**: You type your question in the terminal.
+2.  **Moonshot Answers**: Moonshot AI (Kimi) attempts to answer your question first.
+3.  **DeepSeek Review**: DeepSeek AI acts as a "technical reviewer", reading your question and Moonshot's answer, then providing rigorous review, corrections, and additions.
 
-## 特性
+## Features
 
-*   🚀 **双 AI 协作**：结合了 Moonshot 的通用能力和 DeepSeek 的深度推理/代码审查能力。
-*   🦀 **Rust 编写**：高性能，启动快，资源占用低。
-*   💾 **自动配置**：首次运行时自动引导输入 API Key，并持久化保存到本地配置。
-*   🖥️ **终端友好**：彩色输出，清晰的交互体验。
+*   🚀 **Dual-AI Collaboration**: Combines Moonshot's general capabilities with DeepSeek's deep reasoning/code review abilities.
+*   🦀 **Written in Rust**: High performance, fast startup, low resource usage.
+*   💾 **Auto Configuration**: Automatically prompts for API Keys on first run and persists them to local config.
+*   🖥️ **Terminal Friendly**: Colored output, clear interactive experience.
+*   💬 **Conversation History**: Save conversations with `/save` command.
 
-## 安装
+## Installation
 
-### 前置要求
-*   Rust 环境 (Cargo)
+### Quick Install (macOS)
 
-### 源码安装
+1. Clone the project:
+   ```bash
+   git clone https://github.com/BiBoyang/AIvsAI.git
+   ```
+
+2. Double-click to install:
+   - Open the `AIvsAI` folder
+   - **Double-click** `Install AIvsAI.app`
+   - Wait for installation to complete
+
+3. Usage:
+   ```bash
+   aivsai        # Start the program
+   aivsai-cd     # View conversation history
+   ```
+
+### Manual Install
+
+#### Prerequisites
+*   Rust environment (Cargo)
+
+#### Source Install
 ```bash
 git clone https://github.com/BiBoyang/AIvsAI.git
 cd AIvsAI
 cargo install --path .
 ```
-安装完成后，你可以在终端的任意位置直接运行 `AIvsAI`。
 
-## 使用方法
+After installation, you can run `ai_vs_ai` from anywhere in the terminal.
 
-1.  在终端运行：
+## Usage
+
+1.  Run in terminal:
     ```bash
-    AIvsAI
+    ai_vs_ai
+    # or
+    aivsai  # if using the alias
     ```
-2.  **首次运行配置**：
-    程序会提示你输入 API Key：
-    *   `Moonshot API Key`: [获取地址](https://platform.moonshot.cn/)
-    *   `DeepSeek API Key`: [获取地址](https://platform.deepseek.com/)
+
+2.  **First Run Configuration**:
+    The program will prompt you to enter API Keys:
+    *   `Moonshot API Key`: [Get it here](https://platform.moonshot.cn/)
+    *   `DeepSeek API Key`: [Get it here](https://platform.deepseek.com/)
     
-    *Key 会被自动保存到 `~/.ai_vs_ai_config`，后续无需重复输入。*
+    *Keys are automatically saved to `~/.ai_vs_ai_config`, no need to re-enter.*
 
-3.  **开始对话**：
-    输入你的问题，观察两个 AI 的协作输出。
+3.  **Start Chatting**:
+    Type your question and watch the two AIs collaborate.
 
-## 示例
+4.  **Save Conversation**:
+    Type `/save` to save the current conversation to `conversations/` directory.
+
+## Example
 
 ```text
-User > 解释一下 Rust 的所有权机制
+User > Explain Rust's ownership system
 
 --- Moonshot AI Answer ---
-(Moonshot 的详细解释...)
+(Detailed explanation from Moonshot...)
 
 --- DeepSeek AI Review ---
-(DeepSeek 指出 Moonshot 回答中的亮点，并补充了关于生命周期的细节...)
+(DeepSeek highlights the strengths of Moonshot's answer and adds details about lifetimes...)
+
+Type /save to save this conversation
 ```
 
-## 开发
+## Development
 
 ```bash
-# 克隆项目
+# Clone the project
 git clone https://github.com/BiBoyang/AIvsAI.git
 
-# 运行开发版本
+# Run development version
 cargo run
 
-# 构建 Release 版本
+# Build Release version
 cargo build --release
 ```
 

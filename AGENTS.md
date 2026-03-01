@@ -1,136 +1,138 @@
-# AIvsAI - Agent 协作指南
+# AIvsAI - Agent Collaboration Guide
 
-> 本文档用于指导 AI Agent 在 AIvsAI 项目中的协作开发。
+> This document guides AI Agents in collaborating on the AIvsAI project.
 
-## 项目概述
+## Project Overview
 
-- **项目名称**: AIvsAI
-- **项目类型**: Rust CLI 工具
-- **核心功能**: 双 AI 协作问答系统（Moonshot + DeepSeek）
-- **项目路径**: `/Users/boyang/Desktop/WebKit_build/AIvsAI`
+- **Project Name**: AIvsAI
+- **Project Type**: Rust CLI Tool
+- **Core Function**: Dual-AI collaborative Q&A system (Moonshot + DeepSeek)
+- **Project Path**: `/Users/boyang/Desktop/WebKit_build/AIvsAI`
 
-## 开发规范
+## Development Standards
 
-### 代码风格
+### Code Style
 
-- 使用标准 Rust 代码风格（`cargo fmt` 自动格式化）
-- 遵循 Clippy 建议（`cargo clippy` 检查）
-- 错误处理使用 `anyhow::Result` 和 `Context`
-- 异步代码使用 `tokio` 运行时
+- Use standard Rust code style (`cargo fmt` auto-formatting)
+- Follow Clippy suggestions (`cargo clippy` check)
+- Error handling using `anyhow::Result` and `Context`
+- Async code using `tokio` runtime
 
-### 项目结构
+### Project Structure
 
 ```
 AIvsAI/
-├── Cargo.toml          # 项目配置
-├── README.md           # 用户文档
-├── AGENTS.md           # 本文件 - Agent 协作指南
+├── Cargo.toml          # Project configuration
+├── README.md           # User documentation
+├── AGENTS.md           # This file - Agent collaboration guide
 ├── .gitignore
 └── src/
-    └── main.rs         # 主程序（当前单文件结构）
+    └── main.rs         # Main program (current single-file structure)
 ```
 
-### 依赖管理
+### Dependency Management
 
-当前依赖：
-- `tokio` - 异步运行时
-- `reqwest` - HTTP 客户端
-- `serde` / `serde_json` - 序列化
-- `anyhow` - 错误处理
-- `colored` - 终端彩色输出
-- `dotenvy` - 环境变量加载
+Current dependencies:
+- `tokio` - Async runtime
+- `reqwest` - HTTP client
+- `serde` / `serde_json` - Serialization
+- `anyhow` - Error handling
+- `colored` - Terminal colored output
+- `dotenvy` - Environment variable loading
+- `chrono` - Date/time handling
+- `rustyline` - Better terminal input with Unicode support
 
-**添加新依赖前请确认**：
-1. 是否确实需要？
-2. 是否使用最新稳定版本？
-3. 是否会增加二进制体积？
+**Before adding new dependencies, confirm**:
+1. Is it really needed?
+2. Is it the latest stable version?
+3. Will it increase binary size significantly?
 
-### API 规范
+### API Standards
 
-- 使用 OpenAI 兼容的 API 格式
-- 请求结构：`ChatRequest` / `ChatMessage`
-- 响应结构：`ChatResponse` / `ChatChoice` / `MessageContent`
-- 错误处理：统一使用 `anyhow` 进行错误传递
+- Use OpenAI-compatible API format
+- Request structures: `ChatRequest` / `ChatMessage`
+- Response structures: `ChatResponse` / `ChatChoice` / `MessageContent`
+- Error handling: Use `anyhow` uniformly
 
-### 配置管理
+### Configuration Management
 
-- 配置文件路径: `~/.ai_vs_ai_config`
-- 环境变量：
-  - `MOONSHOT_API_KEY` - Moonshot API 密钥
-  - `DEEPSEEK_API_KEY` - DeepSeek API 密钥
-- 首次运行时自动引导用户输入并持久化
+- Config file path: `~/.ai_vs_ai_config`
+- Environment variables:
+  - `MOONSHOT_API_KEY` - Moonshot API key
+  - `DEEPSEEK_API_KEY` - DeepSeek API key
+- Auto-prompt for user input on first run and persist
 
-## 开发流程
+## Development Workflow
 
-### 1. 代码检查
+### 1. Code Checks
 
-每次修改前运行：
+Run before each modification:
 ```bash
-cargo check      # 编译检查
-cargo clippy     # 代码风格检查
-cargo fmt        # 格式化
+cargo check      # Compilation check
+cargo clippy     # Code style check
+cargo fmt        # Formatting
 ```
 
-### 2. 测试
+### 2. Testing
 
-当前项目暂无测试，如需添加：
+Currently no tests. To add:
 ```bash
-cargo test       # 运行测试
+cargo test       # Run tests
 ```
 
-### 3. 构建
-
-```bash
-cargo build              # 开发构建
-cargo build --release    # 发布构建
-```
-
-### 4. 运行
+### 3. Build
 
 ```bash
-cargo run        # 开发运行
+cargo build              # Development build
+cargo build --release    # Release build
 ```
 
-## 功能开发指南
+### 4. Run
 
-### 添加新功能时的检查清单
+```bash
+cargo run        # Development run
+```
 
-- [ ] 代码能通过 `cargo check`
-- [ ] 代码能通过 `cargo clippy`（无警告）
-- [ ] 代码已格式化 `cargo fmt`
-- [ ] 错误处理完善（使用 `anyhow`）
-- [ ] 用户提示信息清晰（使用 `colored` 美化）
-- [ ] 配置项正确持久化（如需要）
-- [ ] README.md 已更新（如需要）
+## Feature Development Guide
 
-### 代码组织建议
+### Checklist for Adding New Features
 
-如果功能复杂，考虑将 `main.rs` 拆分为：
+- [ ] Code passes `cargo check`
+- [ ] Code passes `cargo clippy` (no warnings)
+- [ ] Code is formatted with `cargo fmt`
+- [ ] Error handling is complete (using `anyhow`)
+- [ ] User prompts are clear (using `colored`)
+- [ ] Configuration is properly persisted (if needed)
+- [ ] README.md is updated (if needed)
+
+### Code Organization Suggestions
+
+If functionality becomes complex, consider splitting `main.rs` into:
 ```
 src/
-├── main.rs           # 程序入口
-├── config.rs         # 配置管理
-├── api.rs            # API 调用
-├── models.rs         # 数据结构
-└── ui.rs             # 终端交互
+├── main.rs           # Program entry
+├── config.rs         # Configuration management
+├── api.rs            # API calls
+├── models.rs         # Data structures
+└── ui.rs             # Terminal interaction
 ```
 
-## 待办事项
+## Todo List
 
-> 记录计划中的功能更新
+> Record planned feature updates
 
-- [x] **对话历史保存功能**
-  - 触发方式：用户输入 `/save` 命令时保存
-  - 保存位置：`conversations/` 子目录（自动创建）
-  - 文件命名格式：`YYYY-MM-DD_HH-MM-SS_用户问题摘要.md`
-    - 时间使用本地时间
-    - 摘要取用户问题的前 20 个字符（去除标点，空格替换为下划线）
-  - 保存内容：
-    1. 用户问题
-    2. Moonshot 的回答
-    3. DeepSeek 的审查
-    4. 元信息（时间戳、使用的模型等）
-  - 文件格式：Markdown（对话流版 + YAML Front Matter 元信息）
+- [x] **Conversation History Save Feature**
+  - Trigger: User inputs `/save` command
+  - Save location: `conversations/` subdirectory (auto-created)
+  - File naming format: `YYYY-MM-DD_HH-MM-SS_user-question-summary.md`
+    - Uses local time
+    - Summary takes first 20 chars of user question (remove punctuation, spaces to underscores)
+  - Save content:
+    1. User question
+    2. Moonshot's answer
+    3. DeepSeek's review
+    4. Metadata (timestamp, models used, etc.)
+  - File format: Markdown (conversation style + YAML Front Matter metadata)
     ```markdown
     ---
     created_at: 2025-03-01 14:30:25
@@ -138,34 +140,33 @@ src/
     deepseek_model: deepseek-chat
     ---
 
-    # AIvsAI 对话记录
+    # AIvsAI Conversation
 
-    > 💬 **用户**：用户问题内容
+    > 💬 **User**: User question content
 
     ---
 
     > 🤖 **Moonshot** (moonshot-v1-8k)
     > 
-    > Moonshot 的回答内容
+    > Moonshot's answer content
 
     ---
 
     > 🔍 **DeepSeek** (deepseek-chat)
     > 
-    > DeepSeek 的审查内容
+    > DeepSeek's review content
     ```
-  - 隐私提醒：对话历史可能包含敏感信息，注意保护
+  - Privacy reminder: Conversation history may contain sensitive information
 
+## Notes
 
-## 注意事项
+1. **API Key Security**: Never hardcode API keys, always use config files or environment variables
+2. **Friendly Error Messages**: Provide clear error info when API calls fail
+3. **Terminal Experience**: Use `colored` for beautiful output, keep interaction clear
+4. **Backward Compatibility**: Consider migration logic when changing config formats
 
-1. **API 密钥安全**：不要硬编码 API 密钥，始终通过配置文件或环境变量获取
-2. **错误提示友好**：API 调用失败时给出清晰的错误信息
-3. **终端体验**：使用 `colored` 美化输出，保持交互清晰
-4. **向后兼容**：配置格式变更时考虑迁移逻辑
-
-## 相关链接
+## Related Links
 
 - Moonshot API: https://platform.moonshot.cn/
 - DeepSeek API: https://platform.deepseek.com/
-- Rust 异步编程: https://rust-lang.github.io/async-book/
+- Rust Async Programming: https://rust-lang.github.io/async-book/

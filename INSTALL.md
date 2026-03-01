@@ -1,50 +1,50 @@
-# AIvsAI 安装指南
+# AIvsAI Installation Guide
 
-## 超简单安装（推荐）
+## Quick Install (Recommended)
 
 ### macOS
 
-1. **下载项目**
+1. **Download the project**
    ```bash
    git clone https://github.com/BiBoyang/AIvsAI.git
    ```
 
-2. **双击安装**
-   - 打开 `AIvsAI` 文件夹
-   - **双击** `安装 AIvsAI.app`
-   - 等待安装完成
+2. **Double-click to install**
+   - Open the `AIvsAI` folder
+   - **Double-click** `Install AIvsAI.app`
+   - Wait for installation to complete
 
-3. **使用**
+3. **Usage**
    ```bash
-   aivsai        # 启动程序
-   aivsai-cd     # 查看对话记录
+   aivsai        # Start the program
+   aivsai-cd     # View conversation history
    ```
 
-### Linux / 手动安装
+### Linux / Manual Install
 
 ```bash
-# 1. 克隆项目
+# 1. Clone the project
 git clone https://github.com/BiBoyang/AIvsAI.git
 cd AIvsAI
 
-# 2. 运行安装脚本
+# 2. Run the install script
 ./setup
 
-# 3. 使用
+# 3. Usage
 aivsai
 ```
 
-## 功能特点
+## Features
 
-- ✅ 自动检测并安装 Rust（如未安装）
-- ✅ 一键编译安装
-- ✅ 自动配置快捷命令
-- ✅ 对话记录保存在项目目录
+- ✅ Auto-detect and install Rust (if not installed)
+- ✅ One-click compile and install
+- ✅ Auto-configure shortcuts
+- ✅ Conversation history saved in project directory
 
-## 文件说明
+## File Reference
 
-| 文件/目录 | 说明 |
-|-----------|------|
-| `安装 AIvsAI.app` | macOS 双击安装程序 |
-| `setup` | 命令行安装脚本 |
-| `conversations/` | 对话记录保存目录 |
+| File/Directory | Description |
+|----------------|-------------|
+| `Install AIvsAI.app` | macOS double-click installer |
+| `setup` | Command-line install script |
+| `conversations/` | Conversation history directory |
